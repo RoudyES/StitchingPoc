@@ -1,0 +1,75 @@
+﻿@page "/"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Index</PageTitle>
+
+<h1 style="width: 100px; margin:auto;">Home</h1>
+<br />
+<div class="form-group" style="position:relative; width: 50%; margin:auto;">
+    <label style="width: 50px; margin:auto">
+        <b>URL:</b>
+        <br />
+        <input @bind="userInput" style="position:relative; width: 47vw;" />
+    </label>
+</div>
+
+<br />
+<br />
+<button class="btn btn-primary" style="width: 120px; margin-left:47%;" @onclick="UpdateURL">Update URL</button>
+<br />
+<br />
+
+<p role="status" style="width: 90px; margin:auto; font-size:16px;">@text</p>
+
+@code {
+    private HubConnection? hubConnection;
+    private string text = "Signal OFF";
+    private string? userInput;
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/signalhub"))
+            .Build();
+
+        hubConnection.On<int>("ReceiveSignal", (message) =>
+        {
+            if (message == 0)
+                text = "Signal OFF";
+
+            else
+                text = "Signal ON";
+
+            StateHasChanged();
+        });
+
+        hubConnection.On<byte[]>("ReceiveImage", async (img) =>
+        {
+            if (img is not null)
+            {
+                using var streamRef = new DotNetStreamReference(stream: new MemoryStream(img));
+                await JS.InvokeVoidAsync("downloadFileFromStream", "output.jpeg", streamRef);
+            }
+
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async void UpdateURL()
+    {
+        HttpContent content = new StringContent(userInput, System.Text.Encoding.UTF8, "application/json");
+        var result = await Http.GetAsync(@$"api/Main/SetURL?url={userInput}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
