@@ -61,7 +61,7 @@ namespace StitchingPoc.Server.Services
         }
         public async Task Stitch()
         {
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
 
                 images = new VectorOfMat();
@@ -101,7 +101,7 @@ namespace StitchingPoc.Server.Services
                     CvInvoke.Resize(result, result, new System.Drawing.Size(1920, 1080));
                     CvInvoke.Imshow("result", result);
                     CvInvoke.WaitKey(0);
-                    await hubConnection?.SendAsync("SendImage", img);
+                    hubConnection?.SendAsync("SendImage", img).Wait();
                 }
 
                 CvInvoke.DestroyAllWindows();

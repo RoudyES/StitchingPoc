@@ -47,6 +47,7 @@
 
         hubConnection.On<byte[]>("ReceiveImage", async (img) =>
         {
+            await JS.InvokeVoidAsync("alert", "Received");
             if (img is not null)
             {
                 using var streamRef = new DotNetStreamReference(stream: new MemoryStream(img));
